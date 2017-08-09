@@ -32,11 +32,11 @@ class RemoteLocalSpec extends FreeSpec {
     import com.thoughtworks.feature.Factory
 
     val clef = Factory[Clef].newInstance()
-    val session = clef.RemoteLocalSession()
+    val session = clef.RemoteLocalSession(8)
 
-    val x = session.newAgent()
+    val x = session.anyAgent
     val xa = session.getAgent(x)
-    val y = session.newAgent()
+    val y = session.anyAgent
     val ya = session.getAgent(y)
 
     xa.send(y, "YOLO")

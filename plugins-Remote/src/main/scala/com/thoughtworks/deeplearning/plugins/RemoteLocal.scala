@@ -1,10 +1,10 @@
 package com.thoughtworks.deeplearning.plugins
 
-trait RemoteLocal extends Remote {
+import shapeless.Witness
+import com.thoughtworks.feature.Factory.inject
+import com.thoughtworks.feature.{Factory, PartialApply, ImplicitApply}
 
-  import shapeless.Witness
-  import com.thoughtworks.feature.Factory.inject
-  import com.thoughtworks.feature.{Factory, PartialApply, ImplicitApply}
+trait RemoteLocal extends Remote {
 
   override type RemoteAgentRef = Int
   type RemoteLocalAgent <: RemoteLocalAgentApi with RemoteAgent
@@ -63,10 +63,13 @@ trait RemoteLocal extends Remote {
     this: RemoteLocalSession =>
 
     import java.util.concurrent.atomic.AtomicInteger
+    import java.util.concurrent.ConcurrentLinkedQueue
     import scala.collection.parallel.mutable.ParHashMap
 
     override type RemoteAgentConf = Unit
+
     val agentMap: ParHashMap[RemoteAgentRef, RemoteLocalAgent] = ParHashMap.empty
+    val agentQueue: ConcurrentLinkedQueue[RemoteAgentRef] = new ConcurrentLinkedQueue()
     val agentCounter = new AtomicInteger(0)
 
     override def newAgent(conf: RemoteAgentConf): RemoteAgentRef = {
@@ -79,6 +82,7 @@ trait RemoteLocal extends Remote {
             remoteLocalAgentParentSessionParameter(this)
           )))
       agentMap.update(agentId, agent)
+      agentQueue.add(agentId)
       agentId
     }
 
@@ -92,16 +96,28 @@ trait RemoteLocal extends Remote {
     override def killAgent(agent: RemoteAgentRef): Unit = {
       agentMap.remove(agent)
     }
+
+    override def anyAgent: RemoteAgentRef = {
+      val agent = agentQueue.remove()
+      if (agentMap.contains(agent)) {
+        agentQueue.add(agent)
+        agent
+      } else anyAgent
+    }
   }
 
   @inject
   protected val remoteLocalSessionFactory: Factory[RemoteLocalSession]
 
   object RemoteLocalSession {
-    def apply[Out <: RemoteLocalSession]()(
+    def apply[Out <: RemoteLocalSession](poolSize: Int)(
         implicit implicitApply: ImplicitApply.Aux[remoteLocalSessionFactory.Constructor, Out]
     ): Out = {
-      implicitApply(remoteLocalSessionFactory.newInstance)
+      val session = implicitApply(remoteLocalSessionFactory.newInstance)
+      (1 to poolSize).foreach { _ =>
+        session.newAgent()
+      }
+      session
     }
   }
 

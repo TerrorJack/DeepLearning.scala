@@ -22,6 +22,8 @@ trait Remote {
     def getAgent(agent: RemoteAgentRef): RemoteAgent
 
     def killAgent(agent: RemoteAgentRef): Unit
+
+    def anyAgent: RemoteAgentRef
   }
 
 }

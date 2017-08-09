@@ -6,6 +6,14 @@ lazy val DeepLearning = project
 
 lazy val `plugins-Remote` = project.dependsOn(DeepLearning)
 
+lazy val `plugins-RemoteDoubleLayers` = project.dependsOn(`plugins-Remote`,
+  `plugins-Layers`,
+  `plugins-Operators`,
+  `plugins-DoubleLiterals`,
+  `plugins-DoubleTraining`,
+  `plugins-ImplicitsSingleton`
+)
+
 lazy val `plugins-ImplicitsSingleton` = project
 
 lazy val `plugins-Layers` = project.dependsOn(DeepLearning)
