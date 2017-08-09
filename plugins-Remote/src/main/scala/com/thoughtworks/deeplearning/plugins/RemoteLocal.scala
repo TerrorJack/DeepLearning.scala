@@ -18,13 +18,9 @@ trait RemoteLocal extends Remote {
     protected val parentSession: RemoteLocalSession
 
     override def send(receiver: RemoteAgentRef, message: RemoteMessage): Unit = {
-      parentSession.agentMap.get(receiver) match {
-        case Some(realReceiver) =>
-          val bos = new ByteArrayOutputStream()
-          new ObjectOutputStream(bos).writeObject(message)
-          realReceiver.onReceiveByteArray(selfAgentRef, bos.toByteArray)
-        case None => sys.error("Impossible happened in RemoteLocalAgentApi.send")
-      }
+      val bos = new ByteArrayOutputStream()
+      new ObjectOutputStream(bos).writeObject(message)
+      parentSession.getAgent(receiver).onReceiveByteArray(selfAgentRef, bos.toByteArray)
     }
 
     protected def onReceiveByteArray(sender: RemoteAgentRef, buf: Array[Byte]): Unit = {
@@ -68,9 +64,9 @@ trait RemoteLocal extends Remote {
 
     override type RemoteAgentConf = Unit
 
-    val agentMap: ParHashMap[RemoteAgentRef, RemoteLocalAgent] = ParHashMap.empty
-    val agentQueue: ConcurrentLinkedQueue[RemoteAgentRef] = new ConcurrentLinkedQueue()
-    val agentCounter = new AtomicInteger(0)
+    protected val agentMap: ParHashMap[RemoteAgentRef, RemoteLocalAgent] = ParHashMap.empty
+    protected val agentQueue: ConcurrentLinkedQueue[RemoteAgentRef] = new ConcurrentLinkedQueue()
+    protected val agentCounter = new AtomicInteger(0)
 
     override def newAgent(conf: RemoteAgentConf): RemoteAgentRef = {
       val agentId = agentCounter.getAndIncrement()
