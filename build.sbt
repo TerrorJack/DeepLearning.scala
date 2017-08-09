@@ -4,6 +4,8 @@ includeFilter in unmanagedSources := (includeFilter in unmanagedSources).value &
 
 lazy val DeepLearning = project
 
+lazy val `plugins-Remote` = project.dependsOn(DeepLearning)
+
 lazy val `plugins-ImplicitsSingleton` = project
 
 lazy val `plugins-Layers` = project.dependsOn(DeepLearning)
