@@ -1,120 +1,22 @@
 package com.thoughtworks.deeplearning.plugins
 
-import shapeless.Witness
-import com.thoughtworks.feature.Factory.inject
-import com.thoughtworks.feature.{Factory, PartialApply, ImplicitApply}
-
 trait RemoteLocal extends Remote {
 
-  override type RemoteAgentRef = Int
-  type RemoteLocalAgent <: RemoteLocalAgentApi with RemoteAgent
+  import java.io.{ByteArrayInputStream, ObjectInputStream, ByteArrayOutputStream, ObjectOutputStream}
 
-  trait RemoteLocalAgentApi extends RemoteAgentApi {
-    this: RemoteLocalAgent =>
+  override type RemoteAgentRef = Unit
 
-    import java.io.{ByteArrayInputStream, ObjectInputStream, ByteArrayOutputStream, ObjectOutputStream}
+  override def anyAgent: RemoteAgentRef = Unit
 
-    protected val selfAgentRef: RemoteAgentRef
-    protected val parentSession: RemoteLocalSession
-
-    override def send(receiver: RemoteAgentRef, message: RemoteMessage): Unit = {
-      val bos = new ByteArrayOutputStream()
-      new ObjectOutputStream(bos).writeObject(message)
-      parentSession.getAgent(receiver).onReceiveByteArray(selfAgentRef, bos.toByteArray)
-    }
-
-    protected def onReceiveByteArray(sender: RemoteAgentRef, buf: Array[Byte]): Unit = {
-      onReceive(sender, new ObjectInputStream(new ByteArrayInputStream(buf)).readObject().asInstanceOf[RemoteMessage])
-    }
-
-    override def onReceive(sender: RemoteAgentRef, message: RemoteMessage): Unit = {}
+  override def send(receiver: RemoteAgentRef, message: Any): Unit = {
+    val bos = new ByteArrayOutputStream()
+    new ObjectOutputStream(bos).writeObject(message)
+    onReceiveBuf(bos.toByteArray)
   }
 
-  @inject
-  protected val remoteLocalAgentFactory: Factory[RemoteLocalAgent]
-
-  @inject
-  protected val remoteLocalAgentPartialApplySelfAgentRef: PartialApply[remoteLocalAgentFactory.Constructor,
-                                                                       Witness.`"selfAgentRef"`.T]
-
-  @inject
-  protected val remoteLocalAgentSelfAgentRefParameter: RemoteAgentRef <:< remoteLocalAgentPartialApplySelfAgentRef.Parameter
-
-  @inject
-  protected val remoteLocalAgentPartialApplyParentSession: PartialApply[remoteLocalAgentPartialApplySelfAgentRef.Rest,
-                                                                        Witness.`"parentSession"`.T]
-
-  @inject
-  protected val remoteLocalAgentParentSessionParameter: RemoteLocalSession <:< remoteLocalAgentPartialApplyParentSession.Parameter
-
-  @inject
-  protected val remoteLocalAgentImplicitApply: ImplicitApply[remoteLocalAgentPartialApplyParentSession.Rest]
-
-  @inject
-  protected val remoteLocalAgentImplicitApplyOut: remoteLocalAgentImplicitApply.Out <:< RemoteLocalAgent
-
-  type RemoteLocalSession <: RemoteLocalSessionApi with RemoteSession
-
-  trait RemoteLocalSessionApi extends RemoteSessionApi {
-    this: RemoteLocalSession =>
-
-    import java.util.concurrent.atomic.AtomicInteger
-    import java.util.concurrent.ConcurrentLinkedQueue
-    import scala.collection.parallel.mutable.ParHashMap
-
-    override type RemoteAgentConf = Unit
-
-    protected val agentMap: ParHashMap[RemoteAgentRef, RemoteLocalAgent] = ParHashMap.empty
-    protected val agentQueue: ConcurrentLinkedQueue[RemoteAgentRef] = new ConcurrentLinkedQueue()
-    protected val agentCounter = new AtomicInteger(0)
-
-    override def newAgent(conf: RemoteAgentConf): RemoteAgentRef = {
-      val agentId = agentCounter.getAndIncrement()
-      val agent = remoteLocalAgentImplicitApplyOut(
-        remoteLocalAgentImplicitApply(
-          remoteLocalAgentPartialApplyParentSession(
-            remoteLocalAgentPartialApplySelfAgentRef(remoteLocalAgentFactory.newInstance,
-                                                     remoteLocalAgentSelfAgentRefParameter(agentId)),
-            remoteLocalAgentParentSessionParameter(this)
-          )))
-      agentMap.update(agentId, agent)
-      agentQueue.add(agentId)
-      agentId
-    }
-
-    override def getAgent(agent: RemoteAgentRef): RemoteLocalAgent = {
-      agentMap.get(agent) match {
-        case Some(realAgent) => realAgent
-        case None            => sys.error("Impossible happened in RemoteLocalSessionApi.getAgent")
-      }
-    }
-
-    override def killAgent(agent: RemoteAgentRef): Unit = {
-      agentMap.remove(agent)
-    }
-
-    override def anyAgent: RemoteAgentRef = {
-      val agent = agentQueue.remove()
-      if (agentMap.contains(agent)) {
-        agentQueue.add(agent)
-        agent
-      } else anyAgent
-    }
+  protected def onReceiveBuf(buf: Array[Byte]): Unit = {
+    onReceive(new ObjectInputStream(new ByteArrayInputStream(buf)).readObject())
   }
 
-  @inject
-  protected val remoteLocalSessionFactory: Factory[RemoteLocalSession]
-
-  object RemoteLocalSession {
-    def apply[Out <: RemoteLocalSession](poolSize: Int)(
-        implicit implicitApply: ImplicitApply.Aux[remoteLocalSessionFactory.Constructor, Out]
-    ): Out = {
-      val session = implicitApply(remoteLocalSessionFactory.newInstance)
-      (1 to poolSize).foreach { _ =>
-        session.newAgent()
-      }
-      session
-    }
-  }
-
+  override def onReceive(message: Any): Unit = {}
 }

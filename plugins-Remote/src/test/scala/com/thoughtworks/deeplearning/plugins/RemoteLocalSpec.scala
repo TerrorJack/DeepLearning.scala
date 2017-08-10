@@ -4,21 +4,12 @@ import scala.collection.mutable.ArrayBuffer
 import org.scalatest._
 
 object RemoteLocalSpec {
-
-  val messageLog = ArrayBuffer.empty[(Int, Int, String)]
+  val messageLog = ArrayBuffer.empty[String]
 
   trait Clef extends RemoteLocal {
-    override type RemoteLocalAgent <: RemoteLocalAgentApi with RemoteAgent
-
-    trait RemoteLocalAgentApi extends super.RemoteLocalAgentApi {
-      this: RemoteLocalAgent =>
-      override type RemoteMessage = String
-
-      override def onReceive(sender: RemoteAgentRef, message: RemoteMessage): Unit = {
-        messageLog.append((sender, selfAgentRef, message))
-      }
+    override def onReceive(message: Any): Unit = {
+      messageLog.append(message.toString)
     }
-
   }
 
 }
@@ -32,15 +23,9 @@ class RemoteLocalSpec extends FreeSpec {
     import com.thoughtworks.feature.Factory
 
     val clef = Factory[Clef].newInstance()
-    val session = clef.RemoteLocalSession(8)
 
-    val x = session.anyAgent
-    val xa = session.getAgent(x)
-    val y = session.anyAgent
-    val ya = session.getAgent(y)
+    clef.send(clef.anyAgent, "YOLO")
 
-    xa.send(y, "YOLO")
-
-    assert(messageLog == ArrayBuffer((x, y, "YOLO")))
+    assert(messageLog == ArrayBuffer("YOLO"))
   }
 }
