@@ -30,10 +30,10 @@ trait RemoteDoLocal extends RemoteDo with Serializable {
         new ObjectInputStream(new ByteArrayInputStream(doConstructorMap(remoteDoRef))).readObject
           .asInstanceOf[Function0[Do[A]]]
       val Do(TryT(ResourceT(recoveredCont))) = recoveredConstructor()
-      Do(TryT(ResourceT(recoveredCont.map { recoveredReleasable =>
-        new Releasable[UnitContinuation, Try[A]] {
-          override def value = recoveredReleasable.value
-          override def release = recoveredReleasable.release.map { _ =>
+      Do(TryT(ResourceT(recoveredCont.map { recoveredResource =>
+        new Resource[UnitContinuation, Try[A]] {
+          override def value = recoveredResource.value
+          override def release = recoveredResource.release.map { _ =>
             {
               doConstructorMap -= remoteDoRef
             }
