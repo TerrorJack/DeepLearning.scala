@@ -14,11 +14,8 @@ lazy val `plugins-RemoteDoubleLayers` = project.dependsOn(`plugins-Remote`,
   `plugins-Layers`,
   `plugins-Operators`,
   `plugins-DoubleLiterals`,
-  `plugins-DoubleTraining`,
-  `plugins-ImplicitsSingleton`
+  `plugins-DoubleTraining`
 )
-
-lazy val `plugins-ImplicitsSingleton` = project
 
 lazy val `plugins-Layers` = project.dependsOn(DeepLearning)
 
@@ -41,8 +38,7 @@ lazy val `plugins-FloatLayers` =
     `plugins-Layers`,
     `plugins-Operators`,
     `plugins-FloatLiterals` % Test,
-    `plugins-FloatTraining` % Test,
-    `plugins-ImplicitsSingleton` % Test
+    `plugins-FloatTraining` % Test
   )
 
 lazy val `plugins-CumulativeFloatLayers` =
@@ -51,8 +47,7 @@ lazy val `plugins-CumulativeFloatLayers` =
     `plugins-FloatLayers`,
     `plugins-FloatTraining` % Test,
     `plugins-FloatLiterals` % Test,
-    `plugins-FloatWeights` % Test,
-    `plugins-ImplicitsSingleton` % Test
+    `plugins-FloatWeights` % Test
   )
 
 lazy val `plugins-Training` = project.dependsOn(DeepLearning)
@@ -61,10 +56,10 @@ lazy val `plugins-INDArrayTraining` = project.dependsOn(`plugins-Training`)
 
 lazy val `plugins-INDArrayLiterals` = project.dependsOn(DeepLearning)
 
-lazy val `plugins-INDArrayWeights` = project.dependsOn(`plugins-ImplicitsSingleton`, `plugins-Weights`)
+lazy val `plugins-INDArrayWeights` = project.dependsOn(`plugins-Weights`)
 
 lazy val `plugins-INDArrayLayers` =
-  project.dependsOn(`plugins-ImplicitsSingleton`, `plugins-Layers`, `plugins-DoubleLiterals`, `plugins-DoubleLayers`)
+  project.dependsOn(`plugins-Layers`, `plugins-DoubleLiterals`, `plugins-DoubleLayers`)
 
 lazy val `plugins-CumulativeINDArrayLayers` =
   project.dependsOn(
@@ -76,8 +71,7 @@ lazy val `plugins-CumulativeINDArrayLayers` =
     `plugins-INDArrayTraining` % Test,
     `plugins-INDArrayLiterals` % Test,
     `plugins-INDArrayWeights` % Test,
-    `plugins-Logging` % Test,
-    `plugins-ImplicitsSingleton` % Test
+    `plugins-Logging` % Test
   )
 
 lazy val FloatRegex = """(?i:float)""".r
@@ -128,7 +122,6 @@ lazy val `plugins-CumulativeDoubleLayers` =
 
 lazy val `plugins-Builtins` =
   project.dependsOn(
-    `plugins-ImplicitsSingleton`,
     `plugins-Layers`,
     `plugins-Weights`,
     `plugins-Logging`,
